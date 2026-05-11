@@ -12,6 +12,7 @@ Animasyonlu Pokemon TCG paket açma simülatörü. TCGdex API'den canlı set ve 
 - LocalStorage koleksiyon sistemi
 - Son paket geçmişi ve set tamamlama sayacı
 - GitHub Pages uyumlu statik Vite build
+- Opsiyonel login/register altyapısı: Pages'te kapalı, self-host kullanımda env ile açılır
 
 ## Kurulum
 
@@ -26,6 +27,28 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+## Opsiyonel Auth Altyapısı
+
+GitHub Pages statik çalıştığı için login/register varsayılan olarak kapalıdır. Source'u indirip kendi sunucusunda kullanacak kişi auth API'yi aktif edebilir.
+
+1. `.env.example` dosyasını `.env.local` olarak kopyala.
+2. Frontend için `VITE_AUTH_ENABLED=true` yap.
+3. `JWT_SECRET` değerini en az 32 karakterlik rastgele bir değerle değiştir.
+4. İki terminalde çalıştır:
+
+```bash
+npm run dev
+npm run dev:auth
+```
+
+Auth API endpointleri:
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+
+Kullanıcılar varsayılan olarak `.data/users.json` içinde bcrypt hash ile saklanır. `.data` git'e eklenmez.
 
 ## GitHub Pages
 

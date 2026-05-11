@@ -5,20 +5,28 @@ import {
   Flame,
   Gauge,
   GitBranch,
+  KeyRound,
   Layers3,
   Loader2,
+  LogOut,
+  Mail,
   PackageOpen,
   RotateCcw,
   Search,
+  ShieldCheck,
   Sparkles,
   Trophy,
+  UserRound,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 const API_BASE = 'https://api.tcgdex.net/v2'
 const STORAGE_KEY = 'pack-forge-collection-v2'
+const AUTH_ENABLED = import.meta.env.VITE_AUTH_ENABLED === 'true'
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL ?? 'http://localhost:8787/api'
+const AUTH_TOKEN_KEY = 'pack-forge-auth-token-v1'
 const DEFAULT_LANGUAGE = 'en'
 const DEFAULT_SET_ID = 'sv08'
 const PACK_OPEN_DELAY = 980
@@ -130,6 +138,20 @@ type PersistedState = {
   history: PackHistory[]
 }
 
+type AuthUser = {
+  id: string
+  name: string
+  email: string
+  createdAt: string
+}
+
+type AuthMode = 'login' | 'register'
+
+type AuthResponse = {
+  token: string
+  user: AuthUser
+}
+
 const emptyCollection: PersistedState = {
   entries: {},
   history: [],
@@ -151,6 +173,12 @@ function App() {
   const [openedPack, setOpenedPack] = useState<PullCard[]>([])
   const [collection, setCollection] = useState<PersistedState>(() => loadCollection())
   const [collectionQuery, setCollectionQuery] = useState('')
+  const [authToken, setAuthToken] = useState(() => (AUTH_ENABLED ? loadAuthToken() : ''))
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const [authMode, setAuthMode] = useState<AuthMode>('login')
+  const [authForm, setAuthForm] = useState({ name: '', email: '', password: '' })
+  const [authMessage, setAuthMessage] = useState('')
+  const [isAuthLoading, setIsAuthLoading] = useState(false)
   const [error, setError] = useState('')
   const [isLoadingSets, setIsLoadingSets] = useState(true)
   const [isLoadingPool, setIsLoadingPool] = useState(true)
@@ -160,6 +188,32 @@ function App() {
   useEffect(() => {
     saveCollection(collection)
   }, [collection])
+
+  useEffect(() => {
+    if (!AUTH_ENABLED || !authToken) {
+      return
+    }
+
+    let ignore = false
+
+    async function loadSession() {
+      try {
+        const result = await authRequest<{ user: AuthUser }>('/auth/me', { token: authToken })
+        if (!ignore) setAuthUser(result.user)
+      } catch {
+        if (!ignore) {
+          clearAuthToken()
+          setAuthToken('')
+          setAuthUser(null)
+        }
+      }
+    }
+
+    loadSession()
+    return () => {
+      ignore = true
+    }
+  }, [authToken])
 
   useEffect(() => {
     let ignore = false
@@ -328,6 +382,39 @@ function App() {
     if (confirmed) setCollection(emptyCollection)
   }
 
+  async function submitAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsAuthLoading(true)
+    setAuthMessage('')
+
+    try {
+      const body =
+        authMode === 'register'
+          ? { name: authForm.name, email: authForm.email, password: authForm.password }
+          : { email: authForm.email, password: authForm.password }
+      const result = await authRequest<AuthResponse>(`/auth/${authMode}`, {
+        method: 'POST',
+        body,
+      })
+
+      saveAuthToken(result.token)
+      setAuthToken(result.token)
+      setAuthUser(result.user)
+      setAuthForm({ name: '', email: '', password: '' })
+    } catch (caught) {
+      setAuthMessage(caught instanceof Error ? caught.message : 'Auth isteği başarısız.')
+    } finally {
+      setIsAuthLoading(false)
+    }
+  }
+
+  function signOut() {
+    clearAuthToken()
+    setAuthToken('')
+    setAuthUser(null)
+    setAuthMessage('')
+  }
+
   return (
     <main className="app-shell">
       <section className="control-rail" aria-label="Pack controls">
@@ -437,6 +524,91 @@ function App() {
             </span>
           </div>
         </div>
+
+        {AUTH_ENABLED && (
+          <section className="auth-panel" aria-label="Account">
+            <div className="auth-heading">
+              <div>
+                <p className="eyebrow">Hesap</p>
+                <h3>{authUser ? authUser.name : 'Login / Register'}</h3>
+              </div>
+              <ShieldCheck size={18} aria-hidden="true" />
+            </div>
+
+            {authUser ? (
+              <div className="session-card">
+                <span>{authUser.email}</span>
+                <button className="auth-submit secondary" type="button" onClick={signOut}>
+                  <LogOut size={16} aria-hidden="true" />
+                  Çıkış yap
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="auth-tabs">
+                  <button
+                    className={authMode === 'login' ? 'auth-tab is-active' : 'auth-tab'}
+                    type="button"
+                    onClick={() => setAuthMode('login')}
+                  >
+                    Giriş
+                  </button>
+                  <button
+                    className={authMode === 'register' ? 'auth-tab is-active' : 'auth-tab'}
+                    type="button"
+                    onClick={() => setAuthMode('register')}
+                  >
+                    Kayıt
+                  </button>
+                </div>
+
+                <form className="auth-form" onSubmit={submitAuth}>
+                  {authMode === 'register' && (
+                    <label className="auth-field">
+                      <UserRound size={16} aria-hidden="true" />
+                      <input
+                        type="text"
+                        value={authForm.name}
+                        placeholder="Ad"
+                        minLength={2}
+                        maxLength={40}
+                        required
+                        onChange={(event) => setAuthForm((form) => ({ ...form, name: event.target.value }))}
+                      />
+                    </label>
+                  )}
+                  <label className="auth-field">
+                    <Mail size={16} aria-hidden="true" />
+                    <input
+                      type="email"
+                      value={authForm.email}
+                      placeholder="E-posta"
+                      required
+                      onChange={(event) => setAuthForm((form) => ({ ...form, email: event.target.value }))}
+                    />
+                  </label>
+                  <label className="auth-field">
+                    <KeyRound size={16} aria-hidden="true" />
+                    <input
+                      type="password"
+                      value={authForm.password}
+                      placeholder="Şifre"
+                      minLength={8}
+                      maxLength={128}
+                      required
+                      onChange={(event) => setAuthForm((form) => ({ ...form, password: event.target.value }))}
+                    />
+                  </label>
+                  <button className="auth-submit" type="submit" disabled={isAuthLoading}>
+                    {isAuthLoading && <Loader2 className="spin" size={16} aria-hidden="true" />}
+                    {authMode === 'register' ? 'Hesap oluştur' : 'Giriş yap'}
+                  </button>
+                </form>
+                {authMessage && <p className="auth-message">{authMessage}</p>}
+              </>
+            )}
+          </section>
+        )}
       </section>
 
       <section className="pack-stage" aria-label="Pack opening simulator">
@@ -821,6 +993,43 @@ function loadCollection(): PersistedState {
 
 function saveCollection(collection: PersistedState) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(collection))
+}
+
+function loadAuthToken() {
+  return window.localStorage.getItem(AUTH_TOKEN_KEY) ?? ''
+}
+
+function saveAuthToken(token: string) {
+  window.localStorage.setItem(AUTH_TOKEN_KEY, token)
+}
+
+function clearAuthToken() {
+  window.localStorage.removeItem(AUTH_TOKEN_KEY)
+}
+
+async function authRequest<T>(
+  path: string,
+  options: {
+    method?: string
+    body?: unknown
+    token?: string
+  } = {},
+): Promise<T> {
+  const response = await fetch(`${AUTH_API_URL}${path}`, {
+    method: options.method ?? 'GET',
+    headers: {
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  })
+  const payload = (await response.json().catch(() => ({}))) as { error?: string }
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Auth isteği başarısız.')
+  }
+
+  return payload as T
 }
 
 function cardImageUrl(image?: string, quality: 'low' | 'high' = 'low') {
