@@ -237,7 +237,7 @@ function App() {
         )
       } catch {
         if (!ignore) {
-          setError('Set listesi yüklenemedi. TCGdex bağlantısını kontrol edip tekrar dene.')
+          setError('Set data could not be loaded. Check the TCGdex connection and try again.')
         }
       } finally {
         if (!ignore) setIsLoadingSets(false)
@@ -280,7 +280,7 @@ function App() {
         setCardPool(hydrated.filter((card) => card.image))
       } catch {
         if (!ignore) {
-          setError('Kart havuzu hazırlanamadı. Farklı bir set seçebilir veya tekrar deneyebilirsin.')
+          setError('The card pool could not be prepared. Select another set or try again.')
         }
       } finally {
         if (!ignore) setIsLoadingPool(false)
@@ -378,7 +378,7 @@ function App() {
   }
 
   function resetCollection() {
-    const confirmed = window.confirm('Koleksiyonu ve paket geçmişini sıfırlamak istiyor musun?')
+    const confirmed = window.confirm('Reset the binder and pack history?')
     if (confirmed) setCollection(emptyCollection)
   }
 
@@ -402,7 +402,7 @@ function App() {
       setAuthUser(result.user)
       setAuthForm({ name: '', email: '', password: '' })
     } catch (caught) {
-      setAuthMessage(caught instanceof Error ? caught.message : 'Auth isteği başarısız.')
+      setAuthMessage(caught instanceof Error ? caught.message : 'Authentication request failed.')
     } finally {
       setIsAuthLoading(false)
     }
@@ -425,12 +425,13 @@ function App() {
           <div>
             <p className="eyebrow">TCGdex powered</p>
             <h1>Pack Forge</h1>
+            <span className="brand-subtitle">Booster Console</span>
           </div>
         </div>
 
         <div className="control-panel">
           <label className="field-label" htmlFor="language">
-            Dil
+            Language
           </label>
           <div className="language-grid">
             {LANGUAGES.map((item) => (
@@ -448,11 +449,11 @@ function App() {
 
         <div className="control-panel set-picker" ref={pickerRef}>
           <label className="field-label" htmlFor="set-search">
-            Set
+            Active Set
           </label>
           <button className="select-trigger" type="button" onClick={() => setShowSetPicker((visible) => !visible)}>
             <span>
-              <strong>{isLoadingSets ? 'Setler yükleniyor' : selectedSummary?.name ?? 'Set seçiliyor'}</strong>
+              <strong>{isLoadingSets ? 'Loading sets' : selectedSummary?.name ?? 'Select a set'}</strong>
               <small>{selectedSummary?.id.toUpperCase() ?? 'TCGdex'}</small>
             </span>
             <ChevronDown size={18} aria-hidden="true" />
@@ -466,7 +467,7 @@ function App() {
                   id="set-search"
                   type="search"
                   value={setSearch}
-                  placeholder="Set adı veya id ara"
+                  placeholder="Search set or id"
                   onChange={(event) => setSetSearch(event.target.value)}
                 />
               </div>
@@ -486,7 +487,7 @@ function App() {
                     <span>
                       <strong>{set.name}</strong>
                       <small>
-                        {set.id.toUpperCase()} / {set.cardCount?.total ?? '?'} kart
+                        {set.id.toUpperCase()} / {set.cardCount?.total ?? '?'} cards
                       </small>
                     </span>
                   </button>
@@ -497,7 +498,7 @@ function App() {
         </div>
 
         <div className="control-panel">
-          <label className="field-label">Paket boyutu</label>
+          <label className="field-label">Pack Size</label>
           <div className="segmented">
             {PACK_SIZES.map((size) => (
               <button
@@ -515,12 +516,12 @@ function App() {
         <div className="status-card">
           <div className="status-row">
             <Layers3 size={18} aria-hidden="true" />
-            <span>{selectedSet?.cards.length ?? selectedSummary?.cardCount?.total ?? 0} kartlık havuz</span>
+            <span>{selectedSet?.cards.length ?? selectedSummary?.cardCount?.total ?? 0} cards indexed</span>
           </div>
           <div className="status-row">
             <Gauge size={18} aria-hidden="true" />
             <span>
-              {isLoadingPool ? `${poolProgress.loaded}/${poolProgress.total || '...'}` : 'Hazır'}
+              {isLoadingPool ? `${poolProgress.loaded}/${poolProgress.total || '...'}` : 'Ready'}
             </span>
           </div>
         </div>
@@ -529,7 +530,7 @@ function App() {
           <section className="auth-panel" aria-label="Account">
             <div className="auth-heading">
               <div>
-                <p className="eyebrow">Hesap</p>
+                <p className="eyebrow">Account</p>
                 <h3>{authUser ? authUser.name : 'Login / Register'}</h3>
               </div>
               <ShieldCheck size={18} aria-hidden="true" />
@@ -540,7 +541,7 @@ function App() {
                 <span>{authUser.email}</span>
                 <button className="auth-submit secondary" type="button" onClick={signOut}>
                   <LogOut size={16} aria-hidden="true" />
-                  Çıkış yap
+                  Sign out
                 </button>
               </div>
             ) : (
@@ -551,14 +552,14 @@ function App() {
                     type="button"
                     onClick={() => setAuthMode('login')}
                   >
-                    Giriş
+                    Login
                   </button>
                   <button
                     className={authMode === 'register' ? 'auth-tab is-active' : 'auth-tab'}
                     type="button"
                     onClick={() => setAuthMode('register')}
                   >
-                    Kayıt
+                    Register
                   </button>
                 </div>
 
@@ -569,7 +570,7 @@ function App() {
                       <input
                         type="text"
                         value={authForm.name}
-                        placeholder="Ad"
+                        placeholder="Name"
                         minLength={2}
                         maxLength={40}
                         required
@@ -582,7 +583,7 @@ function App() {
                     <input
                       type="email"
                       value={authForm.email}
-                      placeholder="E-posta"
+                      placeholder="Email"
                       required
                       onChange={(event) => setAuthForm((form) => ({ ...form, email: event.target.value }))}
                     />
@@ -592,7 +593,7 @@ function App() {
                     <input
                       type="password"
                       value={authForm.password}
-                      placeholder="Şifre"
+                      placeholder="Password"
                       minLength={8}
                       maxLength={128}
                       required
@@ -601,7 +602,7 @@ function App() {
                   </label>
                   <button className="auth-submit" type="submit" disabled={isAuthLoading}>
                     {isAuthLoading && <Loader2 className="spin" size={16} aria-hidden="true" />}
-                    {authMode === 'register' ? 'Hesap oluştur' : 'Giriş yap'}
+                    {authMode === 'register' ? 'Create account' : 'Sign in'}
                   </button>
                 </form>
                 {authMessage && <p className="auth-message">{authMessage}</p>}
@@ -609,13 +610,28 @@ function App() {
             )}
           </section>
         )}
+
+        <a className="author-card" href="https://github.com/shazeus" target="_blank" rel="noreferrer">
+          <img src="https://github.com/shazeus.png" alt="shazeus" />
+          <span>
+            <small>Made by</small>
+            <strong>shazeus</strong>
+          </span>
+          <GitBranch size={16} aria-hidden="true" />
+        </a>
       </section>
 
       <section className="pack-stage" aria-label="Pack opening simulator">
         <div className="stage-topbar">
           <div>
-            <p className="eyebrow">Paket açma simülatörü</p>
-            <h2>{selectedSet?.name ?? selectedSummary?.name ?? 'Kart seti yükleniyor'}</h2>
+            <p className="eyebrow">Pack Opening Simulator</p>
+            <h2>{selectedSet?.name ?? selectedSummary?.name ?? 'Loading card set'}</h2>
+            <div className="stage-meta">
+              {selectedSet?.symbol && <img src={assetUrl(selectedSet.symbol, 'symbol')} alt="" />}
+              <span>{selectedSet?.serie?.name ?? 'Pokemon TCG'}</span>
+              <span>{selectedSet?.cardCount?.total ?? selectedSummary?.cardCount?.total ?? 0} cards</span>
+              {selectedSet?.releaseDate && <span>{selectedSet.releaseDate}</span>}
+            </div>
           </div>
           <a className="source-link" href="https://tcgdex.dev/" target="_blank" rel="noreferrer">
             TCGdex API
@@ -630,28 +646,30 @@ function App() {
 
         <div className={`opening-arena ${packState}`}>
           <div className="pack-display">
-            <div className={`booster-pack ${packState}`}>
-              <div className="pack-crimp top" />
-              <div className="pack-art">
-                {selectedSet?.logo ? (
-                  <img src={assetUrl(selectedSet.logo, 'logo')} alt="" />
-                ) : (
-                  <Sparkles size={44} aria-hidden="true" />
-                )}
-                <span>{selectedSet?.serie?.name ?? 'Pokemon TCG'}</span>
+            <div className="pack-plinth">
+              <div className={`booster-pack ${packState}`}>
+                <div className="pack-crimp top" />
+                <div className="pack-art">
+                  {selectedSet?.logo ? (
+                    <img src={assetUrl(selectedSet.logo, 'logo')} alt="" />
+                  ) : (
+                    <Sparkles size={44} aria-hidden="true" />
+                  )}
+                  <span>{selectedSet?.serie?.name ?? 'Pokemon TCG'}</span>
+                </div>
+                <div className="pack-crimp bottom" />
               </div>
-              <div className="pack-crimp bottom" />
             </div>
             <button className="primary-action" type="button" disabled={!canOpenPack} onClick={openPack}>
               {isLoadingPool ? (
                 <>
                   <Loader2 className="spin" size={18} aria-hidden="true" />
-                  Kart havuzu hazırlanıyor
+                  Preparing pool
                 </>
               ) : (
                 <>
                   <Flame size={18} aria-hidden="true" />
-                  Paketi aç
+                  Open Pack
                 </>
               )}
             </button>
@@ -660,16 +678,16 @@ function App() {
           <div className="card-reveal-zone">
             {packState === 'idle' && (
               <div className="idle-panel">
-                <Sparkles size={32} aria-hidden="true" />
-                <h3>Set seç, paketi aç, kartları tek tek çek.</h3>
-                <p>Her açılış koleksiyona kaydedilir ve hit kartlar ayrıca takip edilir.</p>
+                {selectedSet?.symbol ? <img src={assetUrl(selectedSet.symbol, 'symbol')} alt="" /> : <Sparkles size={32} aria-hidden="true" />}
+                <h3>Pack sealed</h3>
+                <p>{selectedSet?.name ?? selectedSummary?.name ?? 'Selected set'}</p>
               </div>
             )}
 
             {packState === 'opening' && (
               <div className="opening-copy">
                 <Loader2 className="spin" size={28} aria-hidden="true" />
-                <h3>Paket açılıyor</h3>
+                <h3>Breaking foil</h3>
               </div>
             )}
 
@@ -683,7 +701,7 @@ function App() {
                   <div className="card-caption">
                     <span>{currentCard.localId}</span>
                     <strong>{currentCard.name}</strong>
-                    <em>{currentCard.rarity ?? 'Bilinmeyen nadirlik'}</em>
+                    <em>{currentCard.rarity ?? 'Unknown rarity'}</em>
                   </div>
                 </div>
 
@@ -699,12 +717,12 @@ function App() {
                   {packState === 'revealing' ? (
                     <button className="draw-button" type="button" onClick={revealNextCard}>
                       <PackageOpen size={18} aria-hidden="true" />
-                      {currentIndex === openedPack.length - 1 ? 'Paketi bitir' : 'Sıradaki kartı çek'}
+                      {currentIndex === openedPack.length - 1 ? 'Finish Pack' : 'Draw Next'}
                     </button>
                   ) : (
                     <button className="draw-button" type="button" onClick={openPack} disabled={!canOpenPack}>
                       <RotateCcw size={18} aria-hidden="true" />
-                      Yeni paket aç
+                      New Pack
                     </button>
                   )}
                 </div>
@@ -721,7 +739,7 @@ function App() {
                 key={card.pullId}
               >
                 <img src={cardImageUrl(card.image, 'low')} alt={card.name} />
-                <span>{index <= currentIndex || packState === 'complete' ? card.name : 'Hidden'}</span>
+                <span>{index <= currentIndex || packState === 'complete' ? card.name : 'Sealed'}</span>
               </article>
             ))}
           </div>
@@ -730,8 +748,8 @@ function App() {
 
       <aside className="collection-rail" aria-label="Collection">
         <div className="metric-grid">
-          <Metric icon={<Archive size={18} />} label="Toplam" value={stats.totalPulled.toLocaleString()} />
-          <Metric icon={<Trophy size={18} />} label="Tekil" value={stats.unique.toLocaleString()} />
+          <Metric icon={<Archive size={18} />} label="Pulled" value={stats.totalPulled.toLocaleString()} />
+          <Metric icon={<Trophy size={18} />} label="Unique" value={stats.unique.toLocaleString()} />
           <Metric icon={<Sparkles size={18} />} label="Hit" value={stats.hits.toLocaleString()} />
           <Metric
             icon={<Layers3 size={18} />}
@@ -743,19 +761,19 @@ function App() {
         <section className="history-panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Son açılışlar</p>
-              <h3>Paket geçmişi</h3>
+              <p className="eyebrow">Recent pulls</p>
+              <h3>Pack History</h3>
             </div>
             <Clock3 size={18} aria-hidden="true" />
           </div>
           <div className="history-list">
             {collection.history.length === 0 ? (
-              <p className="empty-copy">Henüz paket açılmadı.</p>
+              <p className="empty-copy">No packs opened yet.</p>
             ) : (
               collection.history.slice(0, 4).map((pack) => (
                 <article className="history-item" key={pack.id}>
                   <span>{pack.setName}</span>
-                  <strong>{pack.hits.length ? pack.hits.map((card) => card.name).join(', ') : 'Hit yok'}</strong>
+                  <strong>{pack.hits.length ? pack.hits.map((card) => card.name).join(', ') : 'No hit'}</strong>
                   <small>{new Date(pack.openedAt).toLocaleString()}</small>
                 </article>
               ))
@@ -767,9 +785,9 @@ function App() {
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Binder</p>
-              <h3>Koleksiyon</h3>
+              <h3>Collection</h3>
             </div>
-            <button className="icon-button" type="button" onClick={resetCollection} aria-label="Koleksiyonu sıfırla">
+            <button className="icon-button" type="button" onClick={resetCollection} aria-label="Reset collection">
               <RotateCcw size={16} aria-hidden="true" />
             </button>
           </div>
@@ -778,20 +796,20 @@ function App() {
             <input
               type="search"
               value={collectionQuery}
-              placeholder="Kart ara"
+              placeholder="Search cards"
               onChange={(event) => setCollectionQuery(event.target.value)}
             />
           </div>
           <div className="collection-list">
             {filteredCollection.length === 0 ? (
-              <p className="empty-copy">Açtığın kartlar burada görünecek.</p>
+              <p className="empty-copy">Pulled cards appear here.</p>
             ) : (
               filteredCollection.map((entry) => (
                 <article className={`binder-card ${entry.card.bucket}`} key={entry.card.id}>
                   <img src={cardImageUrl(entry.card.image, 'low')} alt={entry.card.name} />
                   <span>
                     <strong>{entry.card.name}</strong>
-                    <small>{entry.card.rarity ?? 'Bilinmeyen'} / x{entry.count}</small>
+                    <small>{entry.card.rarity ?? 'Unknown'} / x{entry.count}</small>
                   </span>
                 </article>
               ))
@@ -801,7 +819,7 @@ function App() {
 
         <a className="github-card" href="https://github.com/" target="_blank" rel="noreferrer">
           <GitBranch size={18} aria-hidden="true" />
-          <span>GitHub Pages için hazır statik build</span>
+          <span>Static build published on GitHub Pages</span>
         </a>
       </aside>
     </main>
