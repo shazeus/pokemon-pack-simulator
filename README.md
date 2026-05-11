@@ -1,74 +1,159 @@
-# Pack Forge
+<p align="center">
+  <h1 align="center">Pack Forge</h1>
+  <p align="center">Animated Pokemon TCG pack opening simulator powered by the TCGdex API.</p>
+  <p align="center">
+    <a href="https://shazeus.github.io/pokemon-pack-simulator/"><img src="https://img.shields.io/badge/demo-live-2ac38b?style=flat-square" alt="Live Demo"></a>
+    <a href="https://tcgdex.dev/"><img src="https://img.shields.io/badge/API-TCGdex-f4cf5c?style=flat-square" alt="TCGdex API"></a>
+    <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square" alt="React">
+    <img src="https://img.shields.io/badge/TypeScript-6-3178c6?style=flat-square" alt="TypeScript">
+    <img src="https://img.shields.io/badge/Vite-8-646cff?style=flat-square" alt="Vite">
+  </p>
+</p>
 
-Animasyonlu Pokemon TCG paket açma simülatörü. TCGdex API'den canlı set ve kart verisi çeker, seçilen set için booster havuzu hazırlar, kartları tek tek reveal eder ve koleksiyonu tarayıcıda saklar.
+---
 
-## Özellikler
+Pack Forge turns live Pokemon TCG set data into a polished browser-based booster opening experience. Pick a set, choose a pack size, rip the pack, reveal cards one by one, and build a local binder with pull history and set completion stats.
 
-- TCGdex REST API ile set listesi, set detayı ve kart detayı çekme
-- Dil seçimi: EN, FR, DE, ES, IT, PT-BR
-- 6, 10 veya 12 kartlık paket açma
-- Paket yırtılma, kart çekme, flip ve foil parıltı animasyonları
-- Rarity tabanlı pack generation: common, uncommon, rare ve hit slotları
-- LocalStorage koleksiyon sistemi
-- Son paket geçmişi ve set tamamlama sayacı
-- GitHub Pages uyumlu statik Vite build
-- Opsiyonel login/register altyapısı: Pages'te kapalı, self-host kullanımda env ile açılır
+The public GitHub Pages build is fully static. An optional login/register backend is included for people who download the source and want to self-host account features.
 
-## Kurulum
+- **Live TCGdex data** — fetch sets, set details, card metadata, logos, symbols, and card images from TCGdex.
+- **Animated pack opening** — booster rip, card draw, card flip, progress pips, and foil shine effects.
+- **Pack generation logic** — common, uncommon, rare, and hit slots are generated from card rarity buckets.
+- **Local binder** — store pulled cards, duplicates, hit history, and current-set completion in `localStorage`.
+- **Multi-language sets** — switch between English, French, German, Spanish, Italian, and Brazilian Portuguese.
+- **GitHub Pages ready** — static build works without a server, database, or secret environment variables.
+- **Optional auth infrastructure** — Express API with register, login, JWT sessions, bcrypt password hashing, and file-backed storage.
+
+## Demo
+
+Live site:
+
+```text
+https://shazeus.github.io/pokemon-pack-simulator/
+```
+
+Repository:
+
+```text
+https://github.com/shazeus/pokemon-pack-simulator
+```
+
+## Installation
 
 ```bash
+git clone https://github.com/shazeus/pokemon-pack-simulator.git
+cd pokemon-pack-simulator
 npm install
+```
+
+## Usage
+
+Start the frontend:
+
+```bash
 npm run dev
 ```
 
-## Build
+Build the static site:
 
 ```bash
 npm run build
+```
+
+Preview the production build:
+
+```bash
 npm run preview
 ```
 
-## Opsiyonel Auth Altyapısı
+## Features
 
-GitHub Pages statik çalıştığı için login/register varsayılan olarak kapalıdır. Source'u indirip kendi sunucusunda kullanacak kişi auth API'yi aktif edebilir.
+| Feature | Description |
+| --- | --- |
+| Set picker | Search and switch between supported Pokemon TCG sets. |
+| Pack sizes | Open 6, 10, or 12-card packs. |
+| Reveal flow | Cards are revealed one at a time with animated transitions. |
+| Rarity buckets | Pulls are generated from common, uncommon, rare, and hit pools. |
+| Binder | Pulled cards are persisted locally with duplicate counts. |
+| History | Recent packs show the best pulls from each opening. |
+| Completion | Tracks unique cards collected from the selected set. |
+| Static deploy | Works on GitHub Pages without a backend. |
 
-1. `.env.example` dosyasını `.env.local` olarak kopyala.
-2. Frontend için `VITE_AUTH_ENABLED=true` yap.
-3. `JWT_SECRET` değerini en az 32 karakterlik rastgele bir değerle değiştir.
-4. İki terminalde çalıştır:
+## Optional Auth
+
+Authentication is intentionally disabled in the GitHub Pages build. Static hosting cannot securely run login/register flows by itself.
+
+To enable auth for a self-hosted copy:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local`:
+
+```env
+VITE_AUTH_ENABLED=true
+VITE_AUTH_API_URL=http://localhost:8787/api
+
+AUTH_ENABLED=true
+PORT=8787
+CORS_ORIGIN=http://localhost:5173
+JWT_SECRET=replace-with-at-least-32-random-characters
+AUTH_DATA_FILE=.data/users.json
+```
+
+Run the frontend and auth API in separate terminals:
 
 ```bash
 npm run dev
 npm run dev:auth
 ```
 
-Auth API endpointleri:
+Auth endpoints:
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /api/auth/register` | Create a user account. |
+| `POST /api/auth/login` | Sign in and receive a JWT. |
+| `GET /api/auth/me` | Read the current authenticated user. |
 
-Kullanıcılar varsayılan olarak `.data/users.json` içinde bcrypt hash ile saklanır. `.data` git'e eklenmez.
+User records are stored in `.data/users.json` with bcrypt password hashes. The `.data` directory is ignored by git.
 
-## GitHub Pages
+## TCGdex API
 
-Bu proje `.github/workflows/pages.yml` ile GitHub Actions üzerinden Pages deploy etmeye hazırdır.
+Pack Forge uses these public REST endpoints:
 
-1. Repoyu GitHub'a pushla.
-2. Repository `Settings -> Pages` bölümünde source olarak `GitHub Actions` seç.
-3. `main` branch'e her push sonrası build otomatik yayınlanır.
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /v2/{lang}/sets` | List available sets. |
+| `GET /v2/{lang}/sets/{setId}` | Load one set and its card list. |
+| `GET /v2/{lang}/cards/{cardId}` | Load card details such as rarity, type, variants, and pricing metadata. |
 
-## API
+Card images use the TCGdex asset format:
 
-Kullanılan TCGdex uçları:
+```text
+{image}/low.webp
+{image}/high.webp
+```
 
-- `https://api.tcgdex.net/v2/en/sets`
-- `https://api.tcgdex.net/v2/en/sets/{setId}`
-- `https://api.tcgdex.net/v2/en/cards/{cardId}`
+Documentation: [tcgdex.dev](https://tcgdex.dev/)
 
-Kart görselleri TCGdex asset formatıyla kullanılır:
+## Deployment
 
-- `{image}/low.webp`
-- `{image}/high.webp`
+The project can be deployed as a static Vite app:
 
-Dokümantasyon: https://tcgdex.dev/
+```bash
+npm run build
+```
+
+The generated `dist/` directory is what GitHub Pages serves. The current live deployment is published from the `gh-pages` branch.
+
+## Scripts
+
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Start the Vite development server. |
+| `npm run build` | Type-check and build the static frontend. |
+| `npm run preview` | Preview the production build locally. |
+| `npm run lint` | Run ESLint. |
+| `npm run dev:auth` | Start the optional self-hosted auth API. |
