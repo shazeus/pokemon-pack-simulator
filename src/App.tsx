@@ -2,8 +2,11 @@ import {
   Archive,
   ChevronDown,
   Clock3,
+  Crown,
+  Eye,
   Flame,
   Gauge,
+  Gem,
   GitBranch,
   KeyRound,
   Layers3,
@@ -17,6 +20,8 @@ import {
   Sparkles,
   Trophy,
   UserRound,
+  X,
+  Zap,
 } from 'lucide-react'
 import type { FormEvent, ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -152,6 +157,12 @@ type AuthResponse = {
   user: AuthUser
 }
 
+type InspectableCard = Partial<CardDetail> &
+  Partial<CollectionCard> & {
+    count?: number
+    bucket?: RarityBucket
+  }
+
 const emptyCollection: PersistedState = {
   entries: {},
   history: [],
@@ -183,7 +194,10 @@ function App() {
   const [isLoadingSets, setIsLoadingSets] = useState(true)
   const [isLoadingPool, setIsLoadingPool] = useState(true)
   const [showSetPicker, setShowSetPicker] = useState(false)
+  const [celebrationCard, setCelebrationCard] = useState<PullCard | null>(null)
+  const [inspectedCard, setInspectedCard] = useState<InspectableCard | null>(null)
   const pickerRef = useRef<HTMLDivElement | null>(null)
+  const celebrationTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     saveCollection(collection)
@@ -351,11 +365,20 @@ function App() {
   const currentCard = openedPack[currentIndex]
   const revealedCards = openedPack.slice(0, packState === 'complete' ? openedPack.length : currentIndex + 1)
   const canOpenPack = !isLoadingPool && cardPool.length >= packSize && (packState === 'idle' || packState === 'complete')
+  const stageClassName = [
+    'opening-arena',
+    packState,
+    currentCard?.bucket ?? '',
+    celebrationCard ? 'is-celebrating' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   function openPack() {
     if (!selectedSet || !canOpenPack) return
 
     const nextPack = buildPack(cardPool, packSize)
+    setCelebrationCard(null)
     setOpenedPack(nextPack)
     setCurrentIndex(0)
     setPackState('opening')
@@ -363,6 +386,7 @@ function App() {
 
     window.setTimeout(() => {
       setPackState('revealing')
+      triggerPremiumEvent(nextPack[0])
     }, PACK_OPEN_DELAY)
   }
 
@@ -374,7 +398,23 @@ function App() {
       return
     }
 
-    setCurrentIndex((index) => index + 1)
+    const nextIndex = currentIndex + 1
+    setCurrentIndex(nextIndex)
+    triggerPremiumEvent(openedPack[nextIndex])
+  }
+
+  function triggerPremiumEvent(card?: PullCard) {
+    if (!card || !isPremiumPull(card.bucket)) return
+
+    if (celebrationTimerRef.current) {
+      window.clearTimeout(celebrationTimerRef.current)
+    }
+
+    setCelebrationCard(card)
+    celebrationTimerRef.current = window.setTimeout(() => {
+      setCelebrationCard(null)
+      celebrationTimerRef.current = null
+    }, card.bucket === 'hit' ? 2600 : 1900)
   }
 
   function resetCollection() {
@@ -644,10 +684,34 @@ function App() {
           </div>
         )}
 
-        <div className={`opening-arena ${packState}`}>
+        {celebrationCard && (
+          <div className={`hit-event ${celebrationCard.bucket}`} aria-live="polite">
+            <div className="hit-burst">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="hit-event-card">
+              {celebrationCard.bucket === 'hit' ? <Crown size={20} aria-hidden="true" /> : <Gem size={20} aria-hidden="true" />}
+              <span>{celebrationCard.bucket === 'hit' ? 'CHASE HIT' : 'RARE PULL'}</span>
+              <strong>{celebrationCard.name}</strong>
+            </div>
+          </div>
+        )}
+
+        <div className={stageClassName}>
+          <div className="stage-streaks" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
           <div className="pack-display">
             <div className="pack-plinth">
               <div className={`booster-pack ${packState}`}>
+                <div className="tear-line" />
                 <div className="pack-crimp top" />
                 <div className="pack-art">
                   {selectedSet?.logo ? (
@@ -693,17 +757,28 @@ function App() {
 
             {(packState === 'revealing' || packState === 'complete') && currentCard && (
               <div className="reveal-layout">
-                <div className={`spotlight-card ${currentCard.bucket} ${currentCard.foil ? 'foil' : ''}`} key={currentCard.pullId}>
+                <button
+                  className={`spotlight-card ${currentCard.bucket} ${currentCard.foil ? 'foil' : ''}`}
+                  key={currentCard.pullId}
+                  type="button"
+                  onClick={() => setInspectedCard(currentCard)}
+                  aria-label={`Inspect ${currentCard.name}`}
+                >
                   <div className="card-frame">
                     <img src={cardImageUrl(currentCard.image, 'high')} alt={currentCard.name} />
                     <div className="shine" />
+                    <div className="scanline" />
                   </div>
                   <div className="card-caption">
                     <span>{currentCard.localId}</span>
                     <strong>{currentCard.name}</strong>
                     <em>{currentCard.rarity ?? 'Unknown rarity'}</em>
                   </div>
-                </div>
+                  <div className="inspect-hint">
+                    <Eye size={14} aria-hidden="true" />
+                    Inspect card
+                  </div>
+                </button>
 
                 <div className="reveal-actions">
                   <div className="progress-pips" aria-label={`${revealedCards.length} of ${openedPack.length} cards revealed`}>
@@ -734,13 +809,16 @@ function App() {
         {openedPack.length > 0 && (
           <div className="pack-strip" aria-label="Opened pack cards">
             {openedPack.map((card, index) => (
-              <article
+              <button
                 className={index <= currentIndex || packState === 'complete' ? `mini-card ${card.bucket} is-visible` : 'mini-card'}
                 key={card.pullId}
+                type="button"
+                disabled={index > currentIndex && packState !== 'complete'}
+                onClick={() => setInspectedCard(card)}
               >
                 <img src={cardImageUrl(card.image, 'low')} alt={card.name} />
                 <span>{index <= currentIndex || packState === 'complete' ? card.name : 'Sealed'}</span>
-              </article>
+              </button>
             ))}
           </div>
         )}
@@ -805,13 +883,18 @@ function App() {
               <p className="empty-copy">Pulled cards appear here.</p>
             ) : (
               filteredCollection.map((entry) => (
-                <article className={`binder-card ${entry.card.bucket}`} key={entry.card.id}>
+                <button
+                  className={`binder-card ${entry.card.bucket}`}
+                  key={entry.card.id}
+                  type="button"
+                  onClick={() => setInspectedCard({ ...entry.card, count: entry.count })}
+                >
                   <img src={cardImageUrl(entry.card.image, 'low')} alt={entry.card.name} />
                   <span>
                     <strong>{entry.card.name}</strong>
                     <small>{entry.card.rarity ?? 'Unknown'} / x{entry.count}</small>
                   </span>
-                </article>
+                </button>
               ))
             )}
           </div>
@@ -822,6 +905,53 @@ function App() {
           <span>Static build published on GitHub Pages</span>
         </a>
       </aside>
+
+      {inspectedCard && (
+        <div className="inspection-backdrop" role="dialog" aria-modal="true" aria-label={`${inspectedCard.name} details`}>
+          <button className="inspection-scrim" type="button" aria-label="Close card details" onClick={() => setInspectedCard(null)} />
+          <section className={`inspection-panel ${inspectedCard.bucket ?? 'common'}`}>
+            <button className="close-button" type="button" onClick={() => setInspectedCard(null)} aria-label="Close card details">
+              <X size={18} aria-hidden="true" />
+            </button>
+            <div className="inspection-media">
+              <img src={cardImageUrl(inspectedCard.image, 'high')} alt={inspectedCard.name} />
+            </div>
+            <div className="inspection-copy">
+              <p className="eyebrow">Card inspection</p>
+              <h3>{inspectedCard.name}</h3>
+              <div className="inspection-tags">
+                <span>{inspectedCard.localId ?? 'No ID'}</span>
+                <span>{inspectedCard.rarity ?? 'Unknown rarity'}</span>
+                {inspectedCard.count && <span>x{inspectedCard.count}</span>}
+              </div>
+              <dl className="inspection-stats">
+                <div>
+                  <dt>Set</dt>
+                  <dd>{inspectedCard.set?.name ?? inspectedCard.setName ?? selectedSet?.name ?? 'Unknown'}</dd>
+                </div>
+                <div>
+                  <dt>Type</dt>
+                  <dd>{inspectedCard.types?.join(', ') ?? inspectedCard.category ?? 'Unknown'}</dd>
+                </div>
+                <div>
+                  <dt>HP</dt>
+                  <dd>{inspectedCard.hp ?? 'N/A'}</dd>
+                </div>
+                <div>
+                  <dt>Illustrator</dt>
+                  <dd>{inspectedCard.illustrator ?? 'N/A'}</dd>
+                </div>
+              </dl>
+              {isPremiumPull(inspectedCard.bucket) && (
+                <div className="inspection-callout">
+                  <Zap size={16} aria-hidden="true" />
+                  Premium pull animation was triggered for this card.
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   )
 }
@@ -931,6 +1061,10 @@ function bucketForRarity(rarity = ''): RarityBucket {
     return 'uncommon'
   }
   return 'common'
+}
+
+function isPremiumPull(bucket?: RarityBucket) {
+  return bucket === 'rare' || bucket === 'hit'
 }
 
 function mergePackIntoCollection(current: PersistedState, set: SetDetail, pack: PullCard[]): PersistedState {
