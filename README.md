@@ -1,4 +1,4 @@
-<img width="1774" height="887" alt="img" src="https://github.com/user-attachments/assets/ad5e90fd-2a93-43fe-bd4b-505a5bd4fe65" />
+<img width="2560" height="1280" alt="Yeni Proje" src="https://github.com/user-attachments/assets/0c61b486-a819-4533-8787-f2503436ff22" />
 <p align="center">
   <h1 align="center">Pack Forge</h1>
   <p align="center">Animated Pokemon TCG pack opening simulator powered by the TCGdex API.</p>
